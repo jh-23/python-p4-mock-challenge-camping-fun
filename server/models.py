@@ -25,8 +25,10 @@ class Activity(db.Model, SerializerMixin):
     difficulty = db.Column(db.Integer)
 
     # Add relationship
+    signups = db.relationship('Signup', back_populates='activity', cascade='all, delete-orphan')
     
     # Add serialization rules
+    serialize_rules = ('-signups.activity', '-signups',)
     
     def __repr__(self):
         return f'<Activity {self.id}: {self.name}>'
@@ -40,11 +42,23 @@ class Camper(db.Model, SerializerMixin):
     age = db.Column(db.Integer)
 
     # Add relationship
+    signups = db.relationship('Signup', back_populates='camper', cascade='all, delete-orphan')
     
     # Add serialization rules
+    serialize_rules = ('-signups.camper',)
     
     # Add validation
+    @validates('name')
+    def validate_name(self, key, value):
+        if not value:
+            raise ValueError("Failed simple name validation")
+        return value 
     
+    @validates('age')
+    def validate_age(self, key, value):
+        if not 8 <= value <= 18:
+            raise ValueError("Age must be between 8 and 18 years old")
+        return value
     
     def __repr__(self):
         return f'<Camper {self.id}: {self.name}>'
@@ -55,12 +69,25 @@ class Signup(db.Model, SerializerMixin):
 
     id = db.Column(db.Integer, primary_key=True)
     time = db.Column(db.Integer)
+    
+    #Foreign Keys
+    camper_id = db.Column(db.Integer, db.ForeignKey('campers.id'))
+    activity_id = db.Column(db.Integer, db.ForeignKey('activities.id'))
 
     # Add relationships
+    activity = db.relationship('Activity', back_populates='signups')
+    
+    camper = db.relationship('Camper', back_populates='signups')
     
     # Add serialization rules
+    serialize_rules = ('-activity.signups', '-camper.signups')
     
     # Add validation
+    @validates('time')
+    def validate_time(self, key, value):
+        if not 0 <= value <= 23:
+            raise ValueError("Time must be between 0 and 23")
+        return value
     
     def __repr__(self):
         return f'<Signup {self.id}>'
